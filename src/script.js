@@ -7,6 +7,8 @@ import * as Stats from 'stats.js'
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+// import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass.js';
+// import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 
 // Other shader imports...
@@ -24,6 +26,9 @@ document.body.appendChild(stats.dom);
 // Canvas and scene
 const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
+scene.background = new THREE.Color().setHSL(0.6, 0, 0.1);
+scene.fog = new THREE.Fog(scene.background, 1, 100);
+
 
 // Sizes
 const sizes = {
@@ -39,7 +44,11 @@ const sizes = {
 
 // Texture loader
 
-// const textureLoader = new THREE.TextureLoader()
+const textureLoader = new THREE.TextureLoader()
+
+// texture
+const bakedTexture = textureLoader.load('gbaked.jpg');
+bakedTexture.flipY = false;
 
 // Draco loader
 const dracoLoader = new DRACOLoader()
@@ -59,32 +68,75 @@ gltfLoader.setDRACOLoader(dracoLoader)
 
 const ambient = new THREE.AmbientLight(0xffffff, 0.2);
 
-// const point = new THREE.PointLight( 0xDC143C, 1 );
-// point.position.set(-14,0,1)
+// const point = new THREE.PointLight(0xffffff, 0.1);
+// point.position.set(-14, 0, 1)
 
-// const pointb = point.clone() 
-// point.color= new THREE.Color(0xc341ff);
-// pointb.position.set(14,0,1)
 
-const cursorLight = new THREE.SpotLight(0xffffff, 2);
+// const pointb = point.clone()
+// pointb.color = new THREE.Color(0xc341ff);
+// pointb.position.set(14, 0, 0.5)
 
-cursorLight.target.position.set(0, 2, 0)
-cursorLight.angle = 0.7;
-cursorLight.penumbra = 0.5;
-cursorLight.decay = 0;
-cursorLight.distance = 25;
-// cursorLight.map = textures[ 'disturb.jpg' ];
+// const cursorLight = new THREE.SpotLight(0xffffff, 2);
 
-cursorLight.castShadow = true;
-cursorLight.shadow.mapSize.width = 1024;
-cursorLight.shadow.mapSize.height = 1024;
-cursorLight.shadow.camera.near = 1;
-cursorLight.shadow.camera.far = 20;
-cursorLight.shadow.focus = 1;
-cursorLight.shadow.bias = - 0.0002;
-cursorLight.shadow.radius = 4;
+// cursorLight.target.position.set(0, 2, 0)
+// cursorLight.angle = 0.7;
+// cursorLight.penumbra = 0.5;
+// cursorLight.decay = 0;
+// cursorLight.distance = 25;
+// // cursorLight.map = textures[ 'disturb.jpg' ];
 
-scene.add(cursorLight, ambient)
+// cursorLight.castShadow = true;
+// cursorLight.shadow.mapSize.width = 1024;
+// cursorLight.shadow.mapSize.height = 1024;
+// cursorLight.shadow.camera.near = 1;
+// cursorLight.shadow.camera.far = 20;
+// cursorLight.shadow.focus = 1;
+// cursorLight.shadow.bias = - 0.0002;
+// cursorLight.shadow.radius = 4;
+
+// LIGHTS
+
+const hemiLight = new THREE.HemisphereLight(0x00ff00, 0xff0000, 0.05);
+// hemiLight.color.setHSL(0.6, 1, 0.1);
+// hemiLight.groundColor.setHSL(0.595, 1, 0.4);
+hemiLight.position.set(0, 5, 0);
+scene.add(hemiLight);
+
+// const hemiLightHelper = new THREE.HemisphereLightHelper( hemiLight, 10 );
+// scene.add( hemiLightHelper );
+
+//
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.25);
+// dirLight.color.setHSL(0.1, 1, 0.1);
+dirLight.position.set(- 1, 1.75, 1);
+dirLight.position.multiplyScalar(30);
+scene.add(dirLight);
+
+dirLight.castShadow = true;
+
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+
+const d = 50;
+
+dirLight.shadow.camera.left = - d;
+dirLight.shadow.camera.right = d;
+dirLight.shadow.camera.top = d;
+dirLight.shadow.camera.bottom = - d;
+
+dirLight.shadow.camera.far = 50;
+dirLight.shadow.bias = - 0.0001;
+
+// const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 10);
+// scene.add( dirLightHelper );
+
+scene.add(
+    // cursorLight,
+    ambient,
+    // point,
+    //   pointb
+)
 
 
 // ****Geometry****
@@ -121,7 +173,7 @@ const noiseMat = new THREE.ShaderMaterial({
 
 })
 
-// const camoMat = new THREE.MeshnoiseMaterial({
+// const camoMat = new THREE.MeshStandardMaterial({
 //     map:camoTexture
 // })
 
@@ -141,13 +193,21 @@ glassMat.thickness = 1.5
 // *****Meshh and model****
 const planeMesh = new THREE.Mesh(planegeo, PlaneMat)
 planeMesh.receiveShadow = true
-scene.add(planeMesh)
+// scene.add(planeMesh)
 
 
 
-// const bakedMaterial = new THREE.MeshnoiseMaterial({
-//     map: bakedTexture,
-// })
+const bakedMaterial = new THREE.MeshStandardMaterial({
+    map: bakedTexture,
+    // roughness: 1,
+    metalness: 0.3
+})
+
+const lSphere = new THREE.SphereGeometry(0.1, 16, 8);
+
+let point = new THREE.PointLight(0x4169e1, 0.5);
+point.add(new THREE.Mesh(lSphere, glassMat));
+scene.add(point);
 
 
 //model
@@ -160,7 +220,7 @@ scene.add(planeMesh)
 //     (gltf) => {
 //         const text = gltf.scene.children.find(child => child.name === 'Text')
 //         const grumbs = gltf.scene.children.find(child => child.name === 'grumbs')
-    
+
 //         // grumbs = grumbs
 //         // scene.add(gltf.scene);
 
@@ -180,12 +240,12 @@ scene.add(planeMesh)
 //         // function init() {
 //         //     const parallaxX = pointer.x  * 0.5
 //         //    const parallaxY = -pointer.y * 0.5
-        
+
 //         //    grumbs.rotation.x += (parallaxX - grumbs.rotation.x) * 0.5 
 //         //    grumbs.rotation.y += (parallaxY - grumbs.rotation.y) * 0.5 
 //         // }
 //         // init()
-        
+
 //          // Just copy the geometry from the loaded model
 //     const Tgeometry = text.geometry.clone();
 //     const Ggeometry = grumbs.geometry.clone();
@@ -215,9 +275,8 @@ scene.add(planeMesh)
 // )
 
 gltfLoader.load(
-     'grumbs/grumbs.gltf',
-    (gltf) =>
-    {
+    'grumbs.glb',
+    (gltf) => {
         const floor = gltf.scene.children.find(child => child.name === 'floor')
         const g = gltf.scene.children.find(child => child.name === 'G')
         const r = gltf.scene.children.find(child => child.name === 'R')
@@ -228,62 +287,39 @@ gltfLoader.load(
         const podium = gltf.scene.children.find(child => child.name === 'podium')
         const grumbs = gltf.scene.children.find(child => child.name === 'grumbs')
 
-      console.log(gltf)
+        console.log(gltf)
         scene.add(gltf.scene);
 
         floor.material = bakedMaterial;
+        // floor.scale.set(2,2,2);
         g.material = bakedMaterial;
-        r.material = bakedMaterial;
+        r.material = noiseMat;
         u.material = bakedMaterial;
-        m.material = noiseMaterial;
-        m.material.side = THREE.DoubleSide
+        m.material = bakedMaterial;
+        // m.material.side = THREE.DoubleSide
         b.material = bakedMaterial;
         s.material = bakedMaterial;
-        podium.material = bakedMaterial;
-        grumbs.material = noiseMaterial;
+        podium.material = noiseMat;
+        grumbs.material = bakedMaterial;
+        grumbs.scale.set(2, 2, 2);
+        grumbs.position.set(0, 0, -1.7);
+
+        floor.receiveShadow = true
+        g.castShadow = true
+        r.castShadow = true
+        u.castShadow = true
+        m.castShadow = true
+        // m.castShadow = true.side = THREE.DoubleSide
+        b.castShadow = true
+        s.castShadow = true
+        podium.castShadow = true
+        podium.receiveShadow = true
+        grumbs.castShadow = true
 
     }
 )
 
 
-//fireflies //
-
-// const fireflyGeo = new THREE.BufferGeometry()
-// const fireflyCount = 100
-// const positionArray = new Float32Array(fireflyCount * 3)
-// const scaleArray = new Float32Array(fireflyCount)
-
-// for (let i = 0; i < fireflyCount; i++) {
-//     positionArray[i * 3 + 0] = (Math.random() - 0.5) * 7
-//     positionArray[i * 3 + 1] = Math.random() * 5.5
-//     positionArray[i * 3 + 2] = (Math.random() - 0.5) * 4.5
-
-//     scaleArray[i] = Math.random()
-// }
-
-// fireflyGeo.setAttribute('position', new THREE.BufferAttribute(positionArray, 3))
-// fireflyGeo.setAttribute('aScale', new THREE.BufferAttribute(scaleArray, 1))
-
-// // material
-// const fireflyMat = new THREE.ShaderMaterial({
-//    vertexShader: ffVertex,
-//    fragmentShader: ffFragment,
-//    transparent: true,
-
-//    uniforms: {
-//     uPixelRatio: {value: Math.min(window.devicePixelRatio, 2) },
-//     uTime: { value: 0},
-//     uSize: { value: 300}
-
-//    },
-//    blending: THREE.AdditiveBlending,
-//    depthWrite: false
-// })
-
-
-// // points
-// const firefly = new THREE.Points(fireflyGeo, fireflyMat)
-// scene.add(firefly)
 
 let camera;
 
@@ -311,9 +347,9 @@ function updateCursorLight() {
     const dir = vector.sub(camera.position).normalize();
     const distance = -camera.position.z / dir.z;
     const pos = camera.position.clone().add(dir.multiplyScalar(distance));
-    cursorLight.position.x = pos.x;
-    cursorLight.position.y = pos.y;
-    cursorLight.position.z = 1;
+    point.position.x = pos.x;
+    point.position.y = pos.y;
+    point.position.z = 1;
 }
 
 // Add a listener for the pointermove event
@@ -333,12 +369,14 @@ canvas.addEventListener("pointermove", onUpdatePointer, false);
  */
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
-    antialias: true
+    antialias: true,
+    // powerPreference: "high-performance"
 })
 
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+// renderer.gammaFactor = 2.2;
 renderer.outputColorSpace = THREE.SRGBColorSpace
 
 renderer.shadowMap.enabled = true;
@@ -355,23 +393,24 @@ const cameraGroup = new THREE.Group()
 scene.add(cameraGroup)
 
 // Base camera
-let camZ = 8;
+let camZ = 3.5;
 camera = new THREE.PerspectiveCamera(
     45,
     sizes.width / sizes.height,
     0.1,
     100
 );
-camera.position.set(0, 0, camZ);
+camera.position.set(-1.5, 1.5, camZ);
 camera.lookAt(0, 0, 0);
 cameraGroup.add(camera);
 
 // ******Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
-controls.enablePan = false
-controls.enableRotate = false
-controls.enableZoom = false
+controls.enablePan = true
+controls.enableRotate = true
+controls.enableZoom = true
+controls.update();
 
 
 
@@ -387,6 +426,10 @@ const bloomPass = new UnrealBloomPass(
 bloomPass.resolution.set(sizes.width, sizes.height);
 
 const composer = new EffectComposer(renderer);
+// const saoPass = new SAOPass(scene, camera);
+// composer.addPass(saoPass);
+// const outputPass = new OutputPass();
+composer.addPass(outputPass);
 composer.addPass(renderPass);
 composer.addPass(bloomPass);
 
@@ -409,7 +452,7 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix()
 
     bloomPass.resolution.set(sizes.width, sizes.height);
-
+    controls.update();
     // Update renderer
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -435,12 +478,12 @@ const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
     //update shader
-    // fireflyMat.uniforms.uTime.value = elapsedTime
+
     noiseMat.uniforms.u_time.value = elapsedTime
 
-
-    // fireflyMat.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2)
-
+    // point.position.x = Math.sin( elapsedTime * 0.9 ) * 0.5;
+    // point.position.y = Math.cos( elapsedTime * 0.5) * 0.5;
+    point.position.z = Math.cos(elapsedTime * 0.3) * 0.5;
 
     // const parallaxX = pointer.x  * 0.5
     // const parallaxY = -pointer.y * 0.5
@@ -448,7 +491,8 @@ const tick = () => {
     // grumbs.rotation.x += (parallaxX - grumbs.rotation.x) * 0.5 
     // grumbs.rotation.y += (parallaxY - grumbs.rotation.y) * 0.5 
 
-  
+    controls.update();
+
     // Render
     stats.begin()
     renderer.render(scene, camera)

@@ -1,4 +1,4 @@
-# Three.js Journey
+# Grumbs Model Experience
 
 ## Setup
 Download [Node.js](https://nodejs.org/en/download/).
